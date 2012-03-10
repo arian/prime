@@ -1,0 +1,65 @@
+#!/usr/bin/env node
+
+var wrup = require("wrapup")
+var fs = require("fs")
+var json = require("./package")
+
+console.warn("")
+console.warn("                       " + json.version)
+console.warn("  .-.-..-..-.-+-.-..-.| .-.")
+console.warn("  ' ' '`-'`-' ' `-'`-'`-_`\n")
+
+var header = "/*\n\
+---\n\
+provides: mootools2\n\
+version: " + json.version + "\n\
+description: " + json.description + "\n\
+homepage: http://mootools.net\n\
+author: Valerio Proietti <@kamicane> (http://mad4milk.net)\n\
+license: MIT (http://mootools.net/license.txt)\n\
+...\n\
+*/\n\n"
+
+var wrupit = function(){
+	var pkg = wrup().package()
+	fs.writeFileSync("./mootools2.js", header + pkg.up(), "utf-8")
+	fs.writeFileSync("./mootools2-min.js", header + pkg.up({compress: true}), "utf-8")
+	console.log("  written mootools2.js / mootools2-min.js\n")
+}
+
+wrupit()
+
+var a2 = process.argv[2]
+
+if (a2 == '--watch' || a2 == '-w'){
+
+	console.log("  watching...\n")
+
+	var scripts = ['./mootools.js']
+
+	var findJSFiles = function(dir){
+		fs.readdirSync(dir).forEach(function(script){
+			var stat = fs.statSync(dir + '/' + script)
+			if (stat.isDirectory()) findJSFiles(dir + '/' + script)
+			else if (/\.js$/.test(script)) scripts.push(dir + '/' + script)
+		})
+	}
+
+	findJSFiles('./pod')
+	findJSFiles('./class')
+	findJSFiles('./util')
+
+	scripts.forEach(function(script){
+		var filedata = fs.readFileSync(script, "utf-8")
+
+		fs.watchFile(script, {interval: 10}, function(){
+			var data = fs.readFileSync(script, "utf-8")
+			if (filedata !== data){
+				wrupit()
+				filedata = data
+			}
+		})
+
+	})
+
+}
